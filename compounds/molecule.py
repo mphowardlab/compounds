@@ -4,6 +4,11 @@ import numpy as np
 from . import geometry
 from .tools import spin
 
+class Implicit4SiteModel(mb.Compound):
+    def __init__(self, z=None):
+        super().__init__()
+        self.z = z
+
 class Methanol(mb.Compound):
     def __init__(self):
         super().__init__()
@@ -32,7 +37,7 @@ class Methanol(mb.Compound):
         self.add_bond((c,o))
         self.add_bond((o,ho))
 
-class OPCWater(mb.Compound):
+class OPCWater(Implicit4SiteModel):
     """OPC water model.
 
     This is a 4-site water model but LAMMPS treats the dummy site
@@ -42,7 +47,7 @@ class OPCWater(mb.Compound):
 
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(z=0.01594)
 
         # OPC parameters (Table 2)
         b = 0.08724 # nm
