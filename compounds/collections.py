@@ -1,9 +1,10 @@
 import collections.abc
 
 class SymmetricMapping(collections.abc.MutableMapping):
-    def __init__(self, mapping):
+    def __init__(self, mapping=None):
         self._data = {}
-        self.update(mapping)
+        if mapping is not None:
+            self.update(mapping)
 
     def __contains__(self, key):
         return self._key(key) in self._data

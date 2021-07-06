@@ -1,13 +1,26 @@
+import foyer
+import mbuild as mb
+import numpy as np
+
 from . import molecule
 from .collections import SymmetricMapping
 
-def save_lammps(compound, filename, cutoff, **kwargs):
+def save_lammps(compound, filename, cutoff, kspace_tol=1e-4, shake_tol=1e-4, **kwargs):
     if '.lammps' not in filename and '.lmp' not in filename:
         raise ValueError('File must be LAMMPS data format .lammps or .lmp')
 
     if 'atom_style' in kwargs or 'unit_style' in kwargs:
         raise KeyError('atom_style and unit_style are fixed as full and real')
 
+    # make a forcefield object
+    ff_kwargs = {}
+    if 'forcefield_name' in kwargs:
+        ff_kwargs['name'] = kwargs['forcefield_name']
+    if 'forcefield_files' in kwargs:
+        ff_kwargs['forcefield_files'] = kwargs['forcefield_files']
+    ff = foyer.Forcefield(**ff_kwargs)
+
+    # use mbuild to save to lammps format, though
     compound.save(filename, atom_style='full', unit_style='real', **kwargs)
 
     # extract types from written file
@@ -79,32 +92,65 @@ def save_lammps(compound, filename, cutoff, **kwargs):
         for p,sec in potential_map.items():
             if p == 'pair':
                 # check for tip4p pairs
-                tip4p_z = None
-                for c in compounds_:
-                    if isinstance(c,molecule.Implicit4SiteModel):
-                        if tip4p_z is None:
-                            tip4p_z = 10*c.z # A
-                        else:
+                tip4p_model = None
+                tip4p_type = None
+                for c in compound.to_networkx():
+                    if isinstance(c,molecule.Implicit4SiteWater):
+                        if tip4p_type is None:
+                            tip4p_model = {
+                                'z': type(c).z,
+                                'OW': None,
+                                'HW': None
+                                }
+                            s = ff.apply(c)
+                            for a in s.atoms:
+                                if tip4p_model['OW'] is None and a.name == 'OW':
+                                    tip4p_model['OW'] = a.type
+                                elif tip4p_model['HW'] is None and a.name == 'HW':
+                                    tip4p_model['HW'] = a.type
+                            if tip4p_model['OW'] is None or tip4p_model['HW'] is None:
+                                raise TypeError('Unable to deduce all implicit 4-site types')
+                            tip4p_type = type(c)
+                        elif type(c) != tip4p_type:
                             raise TypeError('Only 1 tip4p model currently supported')
 
                 kspace_style = None
-                if tip4p_z is not None:
+                if tip4p_model is not None:
+                    ow = tip4p_model['OW']
+                    hw = tip4p_model['HW']
                     f.write('pair_style lj/cut/tip4p/long {o} {h} {b} {a} {z} {cut}\n'.format(
-                        o=type_map['atom']['opc_OW'],
-                        h=type_map['atom']['opc_HW'],
-                        b=type_map['bond']['opc_OW','opc_HW'],
-                        a=type_map['angle']['opc_HW','opc_OW','opc_HW'],
-                        z=tip4p_z,
+                        o=type_map['atom'][ow],
+                        h=type_map['atom'][hw],
+                        b=type_map['bond'][ow,hw],
+                        a=type_map['angle'][hw,ow,hw],
+                        z=tip4p_model['z'],
                         cut=cutoff))
-                    kspace_style = "tip4p"
+                    kspace_style = "pppm/tip4p"
                 else:
                     f.write('pair_style lj/cut/coul/long {cut}\n'.format(cut=cutoff))
                     kspace_style = "pppm"
-                f.write('pair_modify mix geometric tail yes\n')
-                f.write('special_bonds lj/coul 0.0 0.0 0.5\n')
 
                 if kspace_style is not None:
-                    f.write('kspace_style {} 1.0e-4\n'.format(kspace_style))
+                    f.write('kspace_style {} {}\n'.format(kspace_style,kspace_tol))
+
+                # set combining rule
+                comb_rule = ff.combining_rule
+                if not isinstance(comb_rule,str):
+                    comb_rule = set(ff.combining_rule)
+                    if len(comb_rule) != 1:
+                        raise TypeError('Conflicting combining rules in forcefield.')
+                    comb_rule = comb_rule[0]
+                # lammps calls 'lorentz' the 'arithmetic' mixing rule
+                if comb_rule == 'lorentz':
+                    comb_rule = 'arithmetic'
+                if comb_rule not in ('geometric','arithmetic','sixthpower'):
+                    raise ValueError('Combining rule not recognized')
+                f.write('pair_modify mix {} tail yes\n'.format(comb_rule))
+
+                # set 1-4 exclusions
+                f.write('special_bonds lj 0.0 0.0 {lj} coul 0.0 0.0 {coul}\n'.format(
+                    lj=ff.lj14scale,
+                    coul=ff.coulomb14scale))
             else:
                 if sec is not None:
                     f.write('{}_style {}\n'.format(p,sec))
@@ -117,7 +163,9 @@ def save_lammps(compound, filename, cutoff, **kwargs):
         for (i,j),b in type_map['bond'].items():
             if i in h_types or j in h_types:
                 shake_bonds.append(b)
-        fix_shake = 'fix shake all shake 1.0e-4 20 0 b ' + ' '.join(shake_bonds)
-        if 'opc' in potential_map['pair']:
-            fix_shake += 'a ' + type_map['angle']['opc_HW','opc_OW','opc_HW']
+        fix_shake = 'fix shake all shake {} 20 0 b '.format(shake_tol) + ' '.join(shake_bonds)
+        if tip4p_model is not None:
+            ow = tip4p_model['OW']
+            hw = tip4p_model['HW']
+            fix_shake += ' a ' + type_map['angle'][hw,ow,hw]
         f.write(fix_shake + '\n')

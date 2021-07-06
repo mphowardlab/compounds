@@ -4,10 +4,8 @@ import numpy as np
 from . import geometry
 from .tools import spin
 
-class Implicit4SiteModel(mb.Compound):
-    def __init__(self, z=None):
-        super().__init__()
-        self.z = z
+class Implicit4SiteWater(mb.Compound):
+    pass
 
 class Methanol(mb.Compound):
     def __init__(self):
@@ -37,7 +35,7 @@ class Methanol(mb.Compound):
         self.add_bond((c,o))
         self.add_bond((o,ho))
 
-class OPCWater(Implicit4SiteModel):
+class OPCWater(Implicit4SiteWater):
     """OPC water model.
 
     This is a 4-site water model but LAMMPS treats the dummy site
@@ -47,17 +45,17 @@ class OPCWater(Implicit4SiteModel):
 
     """
     def __init__(self):
-        super().__init__(z=0.01594)
+        super().__init__()
 
         # OPC parameters (Table 2)
         b = 0.08724 # nm
         angle = np.radians(103.6)
 
         # atoms
-        o = mb.Particle(name='O', element='O', pos=[0,0,0])
-        h1 = mb.Particle(name='H', element='H', pos=[b,0,0])
+        o = mb.Particle(name='OW', element='O', pos=[0,0,0])
+        h1 = mb.Particle(name='HW', element='H', pos=[b,0,0])
         h2 = mb.Particle(
-            name='H',
+            name='HW',
             element='H',
             pos=[b*np.cos(angle),b*np.sin(angle),0]
             )
@@ -66,3 +64,5 @@ class OPCWater(Implicit4SiteModel):
         # bonds
         self.add_bond((o,h1))
         self.add_bond((o,h2))
+
+    z = 0.01594 # nm
