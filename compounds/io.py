@@ -98,7 +98,7 @@ def save_lammps(compound, filename, cutoff, kspace_tol=1e-4, shake_tol=1e-4, **k
                     if isinstance(c,molecule.Implicit4SiteWater):
                         if tip4p_type is None:
                             tip4p_model = {
-                                'z': type(c).z,
+                                'z': 10*type(c).z, # nm -> A
                                 'OW': None,
                                 'HW': None
                                 }
