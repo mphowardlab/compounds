@@ -21,6 +21,27 @@ class CH2(mb.Compound):
         self.add_bond((c,h1))
         self.add_bond((c,h2))
 
+class CH3(mb.Compound):
+    def __init__(self):
+        super().__init__()
+
+        b = geometry.bond['CT','HC']
+        theta = geometry.angle['HC','CT','HC']
+
+        c = mb.Particle(name='C', element='C', pos=[0,0,0])
+        h1 = mb.Particle(name='H', element='H', pos=[b,0,0])
+        h1.rotate(theta,around=[0,0,1])
+        h2 = mb.clone(h1)
+        h2.rotate(2*np.pi/3, around=[1,0,0])
+        h3 = mb.clone(h1)
+        h3.rotate(-2*np.pi/3, around=[1,0,0])
+
+        self.add(c,'C')
+        self.add((h1,h2,h3))
+        self.add_bond((c,h1))
+        self.add_bond((c,h2))
+        self.add_bond((c,h3))
+
 class HCCO(mb.Compound):
     def __init__(self):
         super().__init__()

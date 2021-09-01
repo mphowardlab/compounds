@@ -2,6 +2,7 @@ import mbuild as mb
 import numpy as np
 
 from . import geometry
+from . import moiety
 from .tools import spin
 
 class Implicit4SiteWater(mb.Compound):
@@ -33,6 +34,37 @@ class Methanol(mb.Compound):
         self.add_bond((c,h2))
         self.add_bond((c,h3))
         self.add_bond((c,o))
+        self.add_bond((o,ho))
+
+class Ethanol(mb.Compound):
+    def __init__(self):
+        super().__init__()
+
+        b_cc = geometry.bond['CT','CT']
+        b_co = geometry.bond['CT','OS']
+        b_oh = geometry.bond['OH','HO']
+        theta_hco = geometry.angle['H1','CT','OH']
+        theta_coh = geometry.angle['CT','OH','HO']
+        theta_cco = geometry.angle['CT','CT','OS']
+
+        # start from CH3 group
+        ch3 = moiety.CH3()
+        spin(ch3,0.5*(np.pi-theta_cco),[0,0,1],ch3['C'].pos)
+        self.add(ch3)
+
+        # add CH2 group
+        ch2 = moiety.CH2()
+        spin(ch2,0.5*np.pi,[0,1,0],ch2['C'].pos)
+        ch2.translate(b_cc*np.array([np.sin(0.5*theta_cco),np.cos(0.5*theta_cco),0]))
+        self.add(ch2)
+        self.add_bond((ch3['C'],ch2['C']))
+
+        # add OH group
+        o = mb.Particle(name='O', element='O', pos=ch2['C'].pos+b_co*np.array([np.sin(0.5*theta_cco),-np.cos(0.5*theta_cco),0]))
+        ho = mb.Particle(name='H', element='H', pos=o.pos+[b_oh,0,0])
+        spin(ho,(np.pi-0.5*theta_cco)-theta_coh,[0,0,1],o.pos)
+        self.add((o,ho))
+        self.add_bond((ch2['C'],o))
         self.add_bond((o,ho))
 
 class OPCWater(Implicit4SiteWater):
