@@ -6,7 +6,7 @@ from . import moiety
 from .tools import spin
 
 class CrosslinkedPEGDA(mb.Compound):
-    def __init__(self):
+    def __init__(self, n):
         super().__init__()
 
         b_cc = geometry.bond['CT','CT']
@@ -45,7 +45,6 @@ class CrosslinkedPEGDA(mb.Compound):
         self.add_bond((last['C'],first['C']))
 
         # attach PEO chains to the crosslink junction in each of cartesian directions
-        n = 4
         L = [None,None,None]
         for i in range(3):
             site_down = self['site'][(2*i+3)%6]
@@ -123,49 +122,49 @@ class CrosslinkedPEGDA(mb.Compound):
         self.L = np.array(L)
 
 class IdealPEGDANetwork(mb.Compound):
-    def __init__(self, n):
+    def __init__(self, n, num_junctions):
         super().__init__()
 
-        if isinstance(n, int):
-            n = (n,n,n)
+        if isinstance(num_junctions, int):
+            num_junctions = (num_junctions,num_junctions,num_junctions)
         else:
-            n = tuple(n)
-            if len(n) != 3:
+            num_junctions = tuple(num_junctions)
+            if len(num_junctions) != 3:
                 raise TypeError('Number of crosslinks must be int or 3-tuple')
 
         # assemble the junctions, then bond them
         xs = []
-        for i in range(n[0]):
+        for i in range(num_junctions[0]):
             xs.append([])
-            for j in range(n[1]):
+            for j in range(num_junctions[1]):
                 xs[i].append([])
-                for k in range(n[2]):
-                    x = CrosslinkedPEGDA()
+                for k in range(num_junctions[2]):
+                    x = CrosslinkedPEGDA(n)
                     x.translate(x.L*np.array([i,j,k]))
                     self.add(x)
                     xs[i][j].append(x)
 
-        for i in range(n[0]):
-            for j in range(n[1]):
-                for k in range(n[2]):
+        for i in range(num_junctions[0]):
+            for j in range(num_junctions[1]):
+                for k in range(num_junctions[2]):
                     up = xs[i][j][k]
                     # +x
-                    down = xs[(i+1)%n[0]][j][k]
+                    down = xs[(i+1)%num_junctions[0]][j][k]
                     self.add_bond((up['up'][0].anchor,down['down'][0].anchor))
                     up.remove(up['up'][0])
                     down.remove(down['down'][0])
                     # +y
-                    down = xs[i][(j+1)%n[1]][k]
+                    down = xs[i][(j+1)%num_junctions[1]][k]
                     self.add_bond((up['up'][1].anchor,down['down'][1].anchor))
                     up.remove(up['up'][1])
                     down.remove(down['down'][1])
                     # +z
-                    down = xs[i][j][(k+1)%n[2]]
+                    down = xs[i][j][(k+1)%num_junctions[2]]
                     self.add_bond((up['up'][2].anchor,down['down'][2].anchor))
                     up.remove(up['up'][2])
                     down.remove(down['down'][2])
 
-        self.box = mb.Box(xs[0][0][0].L*n)
+        self.box = mb.Box(xs[0][0][0].L*num_junctions)
         self.periodicity = [True,True,True]
 
 class PolyethyleneOxide(mb.Compound):
