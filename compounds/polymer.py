@@ -164,6 +164,9 @@ class IdealPEGDANetwork(mb.Compound):
                     up.remove(up['up'][2])
                     down.remove(down['down'][2])
 
+        # try to shift polymer to keep it mostly in the bounding box
+        self.translate(-np.amin(self.xyz,axis=0))
+
         self.box = mb.Box(xs[0][0][0].L*num_junctions)
         self.periodicity = [True,True,True]
 
