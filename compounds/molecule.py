@@ -77,6 +77,83 @@ class Butanol(Alcohol):
     def __init__(self):
         super().__init__(n=4)
 
+class TetraPEGcenter(mb.Compound):
+    """Center of the tetraPEG polymer.
+
+    This is a carbon with four CO groups attached, each of which can
+    be used to attach a PEG chain.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        # carbon at origin
+        c = mb.Particle(name='C', element='C', pos=[0,0,0])
+        self.add(c,'C')
+
+        # place carbon arms and hydrogens
+        c1 = mb.Particle(name='C1', element='C', pos=[0.107911, 0.095853, 0.057694])
+        c1h1 = mb.Particle(name="C1H1", element="H", pos=[0.06053, 0.17198, 0.12032])
+        c1h2 = mb.Particle(name="C1H2", element="H", pos=[0.15933, 0.14676, -0.02429])
+
+        c2 = mb.Particle(name='C2', element='C', pos=[0.07170, -0.10494, -0.09039])
+        c2h1 = mb.Particle(name="C2H1", element="H", pos=[0.11844, -0.05440, -0.17532])
+        c2h2 = mb.Particle(name="C2H2", element="H", pos=[0.15039, -0.15501, -0.03337])
+
+        c3 = mb.Particle(name='C3', element='C', pos=[-0.07549, -0.07157, 0.11575])
+        c3h1 = mb.Particle(name="C3H1", element="H", pos=[-0.15319, -0.13690, 0.07510])
+        c3h2 = mb.Particle(name="C3H2", element="H", pos=[-0.00565, -0.13355, 0.17261])
+
+        c4 = mb.Particle(name='C4', element='C', pos=[-0.09778, 0.08787, -0.08377])
+        c4h1 = mb.Particle(name="C4H1", element="H", pos=[-0.13560, 0.16946, -0.02154])
+        c4h2 = mb.Particle(name="C4H2", element="H", pos=[-0.04421, 0.13187, -0.16830])
+
+        o1 = mb.Particle(name='O_1', element='O', pos=[0.20502, 0.02589, 0.13608])
+        o2 = mb.Particle(name='O_2', element='O', pos=[-0.01703, -0.20568, -0.13953])
+        o3 = mb.Particle(name='O_3', element='O', pos=[-0.13654, 0.02285, 0.20438])
+        o4 = mb.Particle(name='O_4', element='O', pos=[-0.20989, 0.01454, -0.13365])
+
+        # add atoms to the compound
+        self.add(c1, 'C1')
+        self.add(c1h1, 'C1H1')
+        self.add(c1h2, 'C1H2')
+        self.add(c2, 'C2')
+        self.add(c2h1, 'C2H1')
+        self.add(c2h2, 'C2H2')
+        self.add(c3, 'C3')
+        self.add(c3h1, 'C3H1')
+        self.add(c3h2, 'C3H2')
+        self.add(c4, 'C4')
+        self.add(c4h1, 'C4H1')
+        self.add(c4h2, 'C4H2')
+        self.add(o1, 'O_1')
+        self.add(o2, 'O_2')
+        self.add(o3, 'O_3')
+        self.add(o4, 'O_4')
+
+        # bonds to central carbon
+        self.add_bond((c, c1))
+        self.add_bond((c, c2))
+        self.add_bond((c, c3))
+        self.add_bond((c, c4))
+
+        # bond c's to hydrogens
+        self.add_bond((c1, c1h1))
+        self.add_bond((c1, c1h2))
+        self.add_bond((c2, c2h1))
+        self.add_bond((c2, c2h2))
+        self.add_bond((c3, c3h1))
+        self.add_bond((c3, c3h2))
+        self.add_bond((c4, c4h1))
+        self.add_bond((c4, c4h2))
+
+        # add CO groups
+        self.add_bond((c1, o1))
+        self.add_bond((c2, o2))
+        self.add_bond((c3, o3))
+        self.add_bond((c4, o4))
+
 class Implicit4SiteWater(mb.Compound):
     pass
 
@@ -90,7 +167,7 @@ class OPCWater(Implicit4SiteWater):
 
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(name="SOL")
 
         # OPC parameters (Table 2)
         b = 0.08724 # nm

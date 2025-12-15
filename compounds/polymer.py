@@ -3,6 +3,7 @@ import numpy as np
 
 from . import geometry
 from . import moiety
+from . import molecule
 from .tools import spin
 
 class CrosslinkedPEGDA(mb.Compound):
@@ -231,3 +232,87 @@ class PolyethyleneOxide(mb.Compound):
 
     def Ree(self):
         return self['monomer'][-1]['C2']['C'].pos-self['monomer'][0]['O'].pos
+
+class TetraPEG(mb.Compound):
+    def __init__(self, n):
+        super().__init__(name="PEG")
+
+        bc = geometry.bond['CT','CT']
+        bo = geometry.bond['CT','OS']
+        bh = geometry.bond['HO','OH']
+
+        # # create central atom
+        center = molecule.TetraPEGcenter()
+        self.add(center)
+
+        # create PEG chains
+        # PEG chain 1 (good)
+        peg_1 = PolyethyleneOxide(n)
+        peg_1.translate(center['O_1'].pos)
+        spin(peg_1, 0, [0,0,1], center['O_1'].pos)
+        spin(peg_1, -np.pi/4, [0,1,0], center['O_1'].pos)
+        self.add(peg_1, 'peg_1')
+        self.remove(peg_1['monomer'][0]['O'])
+        self.add_bond((center['O_1'], peg_1['monomer'][0]['C1']['C']))
+
+        # PEGend 1
+        O1 = mb.Particle(name='O', element='O', pos=peg_1['monomer'][-1]['C2']['C'].pos + bo*np.array([1,0,0]))
+        H1 = mb.Particle(name='H', element='H', pos=O1.pos + bh*np.array([1,0,0]))
+        self.add(O1, 'O1')
+        self.add(H1, 'H1')
+        self.add_bond((peg_1['monomer'][-1]['C2']['C'], O1))
+        self.add_bond((O1, H1))
+
+        # PEG chain 2 (good)
+        peg_2 = PolyethyleneOxide(n)
+        peg_2.translate(center['O_2'].pos)
+        spin(peg_2, 3*np.pi/2, [0,0,1], center['O_2'].pos)
+        spin(peg_2, np.pi/4, [1,0,0], center['O_2'].pos)
+        self.add(peg_2, 'peg_2')
+        self.remove(peg_2['monomer'][0]['O'])
+        self.add_bond((center['O_2'], peg_2['monomer'][0]['C1']['C']))
+
+        # PEGend 2
+        O2 = mb.Particle(name='O', element='O', pos=peg_2['monomer'][-1]['C2']['C'].pos + bo*np.array([-1,0,0]))
+        H2 = mb.Particle(name='H', element='H', pos=O2.pos + bh*np.array([-1,0,0]))
+        self.add(O2, 'O2')
+        self.add(H2, 'H2')
+        self.add_bond((peg_2['monomer'][-1]['C2']['C'], O2))
+        self.add_bond((O2, H2))
+
+        # PEG chain 3 (good)
+        peg_3 = PolyethyleneOxide(n)
+        peg_3.translate(center['O_3'].pos)
+        spin(peg_3, 3*np.pi/4, [0,0,1], center['O_3'].pos)
+        spin(peg_3, np.pi/4, [0,1,0], center['O_3'].pos)
+        self.add(peg_3, 'peg_3')
+        self.remove(peg_3['monomer'][0]['O'])
+        self.add_bond((center['O_3'], peg_3['monomer'][0]['C1']['C']))
+
+        # PEGend 3
+        O3 = mb.Particle(name='O', element='O', pos=peg_3['monomer'][-1]['C2']['C'].pos + bo*np.array([0,1,0]))
+        H3 = mb.Particle(name='H', element='H', pos=O3.pos + bh*np.array([0,1,0]))
+        self.add(O3, 'O3')
+        self.add(H3, 'H3')
+        self.add_bond((peg_3['monomer'][-1]['C2']['C'], O3))
+        self.add_bond((O3, H3))
+
+        # PEG chain 4
+        peg_4 = PolyethyleneOxide(n)
+        peg_4.translate(center['O_4'].pos)
+        spin(peg_4, np.pi, [0,0,1], center['O_4'].pos)
+        spin(peg_4, -np.pi/4, [0,1,0], center['O_4'].pos)
+        self.add(peg_4, 'peg_4')
+        self.remove(peg_4['monomer'][0]['O'])
+        self.add_bond((center['O_4'], peg_4['monomer'][0]['C1']['C']))
+
+        # PEGend 4
+        O4 = mb.Particle(name='O', element='O', pos=peg_4['monomer'][-1]['C2']['C'].pos + bo*np.array([0,-1,0]))
+        H4 = mb.Particle(name='H', element='H', pos=O4.pos + bh*np.array([0,-1,0]))
+        self.add(O4, 'O4')
+        self.add(H4, 'H4')
+        self.add_bond((peg_4['monomer'][-1]['C2']['C'], O4))
+        self.add_bond((O4, H4))
+
+        # try to shift polymer to keep it mostly in the bounding box
+        self.translate(-np.amin(self.xyz,axis=0))
