@@ -77,6 +77,95 @@ class Butanol(Alcohol):
     def __init__(self):
         super().__init__(n=4)
 
+class Alkanoate(mb.Compound):
+    """Linear alkanoate (carboxylate) anion.
+
+    Generates HCOO- when n=0, or CH3(CH2)_{n-1}COO- when n >= 1,
+    where n is the number of alkyl carbons.
+    """
+    def __init__(self, n):
+        super().__init__()
+
+        if n < 0:
+            raise ValueError("n must be non-negative")
+
+        b_cc = geometry.bond['CT', 'CT']
+        b_ctc = geometry.bond['CT', 'C']
+        b_co = geometry.bond['C', 'O2']
+        b_h1c = geometry.bond['H1', 'C']
+        theta_chain = geometry.angle['CT', 'CT', 'C']
+        theta_oco = geometry.angle['O2', 'C', 'O2']
+        theta_ccc = geometry.angle['CT', 'CT', 'C']
+
+        # alkyl part (only for n >= 1)
+        last_c = None
+        if n >= 1:
+            # start from CH3 group
+            ch3 = moiety.CH3()
+            spin(ch3, 0.5 * (np.pi - theta_ccc), [0, 0, 1], ch3['C'].pos)
+            self.add(ch3, 'C[$]')
+            last_c = ch3
+
+            # add CH2 group(s)
+            up_ch2 = b_cc * np.array([np.sin(0.5 * theta_ccc), np.cos(0.5 * theta_ccc), 0])
+            down_ch2 = np.array([1, -1, 1]) * up_ch2
+            for i in range(1, n):
+                ch2 = moiety.CH2()
+                spin(ch2, 0.5 * np.pi, [0, 1, 0], ch2['C'].pos)
+                if i % 2 == 1:
+                    ch2.translate(last_c['C'].pos + up_ch2)
+                else:
+                    spin(ch2, np.pi, [1, 0, 0], ch2['C'].pos)
+                    ch2.translate(last_c['C'].pos + down_ch2)
+                self.add(ch2, 'C[$]')
+                self.add_bond((last_c['C'], ch2['C']))
+                last_c = ch2
+
+        # carboxylate group
+        coo = moiety.COO()
+
+        if n == 0:
+            self.add(coo, 'COO')
+            c_pos = coo['C'].pos
+            h = mb.Particle(name='H', element='H', pos=c_pos + b_h1c * np.array([0.0, -1.0, 0.0]))
+            
+            self.add(h, 'H')
+            self.add_bond((coo['C'], h))
+        else:
+            up_coo = b_ctc * np.array([np.sin(0.5 * theta_chain), np.cos(0.5 * theta_chain), 0])
+            down_coo = np.array([1, -1, 1]) * up_coo
+            step = up_coo if n % 2 == 1 else down_coo
+            alpha = np.arctan2(-step[0], step[1])
+            spin(coo, alpha, [0, 0, 1], coo['C'].pos)
+            coo.translate(last_c['C'].pos + step - coo['C'].pos)
+
+            self.add(coo, 'COO')
+            self.add_bond((last_c['C'], coo['C']))
+
+
+class Formate(Alkanoate):
+    #HCOO-
+    def __init__(self):
+        super().__init__(0)
+
+
+class Acetate(Alkanoate):
+    #CH3COO-
+    def __init__(self):
+        super().__init__(1)
+
+
+class Propanoate(Alkanoate):
+    #CH3CH2COO-
+    def __init__(self):
+        super().__init__(2)
+
+
+class Butanoate(Alkanoate):
+    #CH3CH2CH2COO-
+    def __init__(self):
+        super().__init__(3)
+
 class Implicit4SiteWater(mb.Compound):
     pass
 

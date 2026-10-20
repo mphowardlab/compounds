@@ -42,6 +42,24 @@ class CH3(mb.Compound):
         self.add_bond((c,h2))
         self.add_bond((c,h3))
 
+class COO(mb.Compound):
+    def __init__(self):
+        super().__init__()
+
+        b = geometry.bond['C','O2']
+        theta_coo = geometry.angle['O2','C','O2']
+
+        c = mb.Particle(name='C', element='C', pos=[0,0,0])
+        o1 = mb.Particle(name='O', element='O', pos=[0,b,0])
+        o1.rotate(0.5*theta_coo,around=[0,0,1])
+        o2 = mb.Particle(name='O', element='O', pos=[0,b,0])
+        o2.rotate(-0.5*theta_coo,around=[0,0,1])
+
+        self.add(c,'C')
+        self.add((o1,o2))
+        self.add_bond((c,o1))
+        self.add_bond((c,o2))
+
 class HCCO(mb.Compound):
     def __init__(self):
         super().__init__()
