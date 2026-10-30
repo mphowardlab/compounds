@@ -47,7 +47,7 @@ class COO(mb.Compound):
         super().__init__()
 
         b = geometry.bond['C','O2']
-        theta_coo = geometry.angle['O2','C','O2']
+        theta_oco = geometry.angle['O2','C','O2']
 
         c = mb.Particle(name='C', element='C', pos=[0,0,0])
         o1 = mb.Particle(name='O', element='O', pos=[0,b,0])
